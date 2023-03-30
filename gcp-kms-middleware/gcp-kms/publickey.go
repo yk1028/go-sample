@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"hash/crc32"
 	"math/big"
-	"strings"
 
 	kms "cloud.google.com/go/kms/apiv1"
 	"cloud.google.com/go/kms/apiv1/kmspb"
@@ -25,9 +24,7 @@ type publicKeyInfo struct {
 	PublicKey asn1.BitString
 }
 
-func GetPublicKey(c *gin.Context) (string, error) {
-
-	name := generateName(c)
+func GetPublicKey(name string, c *gin.Context) (string, error) {
 
 	// Create the client using gcp service account key file.
 	ctx := context.Background()
@@ -58,21 +55,6 @@ func GetPublicKey(c *gin.Context) (string, error) {
 	publicKey := parsePublickey(key)
 
 	return publicKey, nil
-}
-
-func generateName(c *gin.Context) string {
-	names := []string{
-		"projects",
-		c.Param("projects"),
-		"locations",
-		c.Param("locations"),
-		"keyRings",
-		c.Param("keyRings"),
-		"cryptoKeys",
-		c.Param("cryptoKeys"),
-		"cryptoKeyVersions",
-		c.Param("cryptoKeyVersions")}
-	return strings.Join(names, "/")
 }
 
 // Optional, but recommended: perform integrity verification on result.

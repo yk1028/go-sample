@@ -1,0 +1,6 @@
+{
+    "keynames" : {
+        "relayer1" : "projects/rock-heaven-340205/locations/global/keyRings/xpla-test/cryptoKeys/go-test-key/cryptoKeyVersions/1",
+        "relayer2" : "projects/rock-heaven-340205/locations/global/keyRings/xpla-test/cryptoKeys/go-test-key-2/cryptoKeyVersions/1"
+    }
+}
