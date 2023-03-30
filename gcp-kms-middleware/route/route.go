@@ -19,15 +19,6 @@ func SetupRouter() *gin.Engine {
 		ctx.String(200, "pong")
 	})
 
-	// router.GET("/publicKey/:projects/:locations/:keyRings/:cryptoKeys/:cryptoKeyVersions", func(ctx *gin.Context) {
-	// 	publicKey, err := gcpkms.GetPublicKey(ctx)
-	// 	if err != nil {
-	// 		ctx.String(http.StatusInternalServerError, err.Error())
-	// 	}
-
-	// 	ctx.String(200, string(publicKey))
-	// })
-
 	router.GET("/publickey/relayer1", func(ctx *gin.Context) {
 		name := keyinfo.GetKeyName("relayer1")
 		publicKey, err := gcpkms.GetPublicKey(name, ctx)
