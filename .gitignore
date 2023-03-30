@@ -46,4 +46,7 @@ go.work
 ### log file
 *.log
 
+### service account file
+service-account.json
+
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
