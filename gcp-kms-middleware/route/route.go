@@ -49,7 +49,7 @@ func getPublicKey(key string, ctx *gin.Context) {
 
 func sign(key string, ctx *gin.Context) {
 	keyName := keyinfo.GetKeyName(key)
-	tx := parseTx(ctx)
+	tx := parseTx(ctx.Request.Body)
 
 	signature, err := gcpkms.Sign(keyName, tx)
 	if err != nil {

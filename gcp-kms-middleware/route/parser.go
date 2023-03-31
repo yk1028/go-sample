@@ -3,13 +3,11 @@ package route
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
-
-	"github.com/gin-gonic/gin"
 )
 
-func parseTx(ctx *gin.Context) string {
-	body := ctx.Request.Body
+func parseTx(body io.ReadCloser) string {
 	value, err := ioutil.ReadAll(body)
 	if err != nil {
 		fmt.Println(err.Error())
