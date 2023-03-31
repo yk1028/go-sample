@@ -1,9 +1,6 @@
 package route
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -20,65 +17,46 @@ func SetupRouter() *gin.Engine {
 	})
 
 	router.GET("/publickey/relayer1", func(ctx *gin.Context) {
-		name := keyinfo.GetKeyName("relayer1")
-		publicKey, err := gcpkms.GetPublicKey(name, ctx)
-		if err != nil {
-			ctx.String(http.StatusInternalServerError, err.Error())
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{
-			"publicKey": publicKey,
-		})
+		getPublicKey("relayer1", ctx)
 	})
 
 	router.GET("/publickey/relayer2", func(ctx *gin.Context) {
-		name := keyinfo.GetKeyName("relayer2")
-		publicKey, err := gcpkms.GetPublicKey(name, ctx)
-		if err != nil {
-			ctx.String(http.StatusInternalServerError, err.Error())
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{
-			"publicKey": publicKey,
-		})
+		getPublicKey("relayer2", ctx)
 	})
 
 	router.POST("/sign/relayer1", func(ctx *gin.Context) {
-		signature, err := sign("relayer1", ctx)
-		if err != nil {
-			ctx.String(http.StatusInternalServerError, err.Error())
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{
-			"signature": signature,
-		})
+		sign("relayer1", ctx)
 	})
 
 	router.POST("/sign/relayer2", func(ctx *gin.Context) {
-		signature, err := sign("relayer2", ctx)
-		if err != nil {
-			ctx.String(http.StatusInternalServerError, err.Error())
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{
-			"signature": signature,
-		})
+		sign("relayer2", ctx)
 	})
 
 	return router
 }
 
-func sign(key string, ctx *gin.Context) (string, error) {
-	body := ctx.Request.Body
-	value, err := ioutil.ReadAll(body)
+func getPublicKey(key string, ctx *gin.Context) {
+	keyName := keyinfo.GetKeyName(key)
+	publicKey, err := gcpkms.GetPublicKey(keyName, ctx)
 	if err != nil {
-		fmt.Println(err.Error())
+		ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
-	var data map[string]interface{}
-	json.Unmarshal([]byte(value), &data)
+	ctx.JSON(http.StatusOK, gin.H{
+		"publicKey": publicKey,
+	})
+}
 
-	tx := data["tx"].(string)
+func sign(key string, ctx *gin.Context) {
+	keyName := keyinfo.GetKeyName(key)
+	tx := parseTx(ctx)
 
-	return gcpkms.Sign(keyinfo.GetKeyName(key), tx)
+	signature, err := gcpkms.Sign(keyName, tx)
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"signature": signature,
+	})
 }
