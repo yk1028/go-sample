@@ -1,43 +1,77 @@
 package route
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 
-	gcpkms "github.com/yk1028/go-sample/gcp-kms-middleware/gcp-kms"
-	"github.com/yk1028/go-sample/gcp-kms-middleware/keyinfo"
+	"github.com/yk1028/go-sample/gcp-kms-middleware/signer"
 )
 
 func SetupRouter() *gin.Engine {
+
 	router := gin.Default()
+
+	keys := initKeys()
+
+	for key, signer := range keys {
+		router.GET("/publickey/"+key, func(ctx *gin.Context) {
+			getPublicKey(signer, ctx)
+		})
+
+		router.POST("/sign/"+key, func(ctx *gin.Context) {
+			sign(signer, ctx)
+		})
+	}
 
 	router.GET("/ping", func(ctx *gin.Context) {
 		ctx.String(200, "pong")
 	})
 
-	router.GET("/publickey/relayer1", func(ctx *gin.Context) {
-		getPublicKey("relayer1", ctx)
-	})
-
-	router.GET("/publickey/relayer2", func(ctx *gin.Context) {
-		getPublicKey("relayer2", ctx)
-	})
-
-	router.POST("/sign/relayer1", func(ctx *gin.Context) {
-		sign("relayer1", ctx)
-	})
-
-	router.POST("/sign/relayer2", func(ctx *gin.Context) {
-		sign("relayer2", ctx)
-	})
-
 	return router
 }
 
-func getPublicKey(key string, ctx *gin.Context) {
-	keyName := keyinfo.GetKeyName(key)
-	publicKey, err := gcpkms.GetPublicKey(keyName, ctx)
+func initKeys() map[string]signer.Signer {
+	keys := map[string]signer.Signer{}
+
+	keyList := getKeyList("gcpkms")
+
+	for key, name := range keyList {
+		fmt.Println(key, name)
+		keys[key] = signer.GcpKmsSigner{Name: name.(string)}
+	}
+
+	return keys
+}
+
+func getKeyList(keyType string) map[string]interface{} {
+	jsonFile, err := os.Open("./keyinfo.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+
+	keyinfo := make(map[string]interface{})
+
+	err = json.Unmarshal(byteValue, &keyinfo)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return keyinfo[keyType].(map[string]interface{})
+}
+
+func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
+
+	publicKey, err := keySigner.GetPublicKey()
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
@@ -47,11 +81,11 @@ func getPublicKey(key string, ctx *gin.Context) {
 	})
 }
 
-func sign(key string, ctx *gin.Context) {
-	keyName := keyinfo.GetKeyName(key)
+func sign(keySigner signer.Signer, ctx *gin.Context) {
+
 	tx := parseTx(ctx.Request.Body)
 
-	signature, err := gcpkms.Sign(keyName, tx)
+	signature, err := keySigner.Sign(tx)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
@@ -59,4 +93,16 @@ func sign(key string, ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"signature": signature,
 	})
+}
+
+func parseTx(body io.ReadCloser) string {
+	value, err := ioutil.ReadAll(body)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	var data map[string]interface{}
+	json.Unmarshal([]byte(value), &data)
+
+	return data["tx"].(string)
 }

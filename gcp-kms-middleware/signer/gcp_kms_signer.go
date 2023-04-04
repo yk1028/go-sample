@@ -1,4 +1,4 @@
-package gcpkms
+package signer
 
 import (
 	"context"
@@ -14,9 +14,12 @@ import (
 	kms "cloud.google.com/go/kms/apiv1"
 	"cloud.google.com/go/kms/apiv1/kmspb"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/gin-gonic/gin"
 	"google.golang.org/api/option"
 )
+
+type GcpKmsSigner struct {
+	Name string
+}
 
 type publicKeyInfo struct {
 	Raw       asn1.RawContent
@@ -24,8 +27,7 @@ type publicKeyInfo struct {
 	PublicKey asn1.BitString
 }
 
-func GetPublicKey(name string, c *gin.Context) (string, error) {
-
+func (g GcpKmsSigner) GetPublicKey() (string, error) {
 	// Create the client using gcp service account key file.
 	ctx := context.Background()
 	client, err := kms.NewKeyManagementClient(ctx, option.WithCredentialsFile("./service-account.json"))
@@ -36,7 +38,7 @@ func GetPublicKey(name string, c *gin.Context) (string, error) {
 
 	// Build the request.
 	req := &kmspb.GetPublicKeyRequest{
-		Name: name,
+		Name: g.Name,
 	}
 
 	// Call the API.
@@ -90,4 +92,65 @@ func parsePublickey(key []byte) string {
 	compPubKey := crypto.CompressPubkey(&pubkey)
 
 	return base64.StdEncoding.EncodeToString(compPubKey)
+}
+
+type ecdsaStruct struct {
+	R, S *big.Int
+}
+
+func (g GcpKmsSigner) Sign(base64ToSign string) (string, error) {
+
+	ctx := context.Background()
+	kmsClient, err := kms.NewKeyManagementClient(ctx, option.WithCredentialsFile("./service-account.json"))
+
+	if err != nil {
+		return "", err
+	}
+	defer kmsClient.Close()
+
+	bytesToSign, err := base64.StdEncoding.DecodeString(base64ToSign)
+
+	if err != nil {
+		return "", err
+	}
+
+	digest := crypto.Keccak256(bytesToSign)
+
+	req := &kmspb.AsymmetricSignRequest{
+		Name: g.Name,
+		Digest: &kmspb.Digest{
+			Digest: &kmspb.Digest_Sha256{
+				Sha256: digest[:],
+			},
+		},
+	}
+
+	signResp, err := kmsClient.AsymmetricSign(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	dec := new(ecdsaStruct)
+	asn1.Unmarshal(signResp.Signature, dec)
+
+	secp256k1N, _ := new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
+	secp256k1halfN := new(big.Int).Div(secp256k1N, new(big.Int).SetInt64(2))
+
+	var r, s *big.Int
+
+	r = dec.R
+	if dec.S.Cmp(secp256k1halfN) == 1 {
+		s = new(big.Int).Sub(secp256k1N, dec.S)
+	} else {
+		s = dec.S
+	}
+
+	rBytes := r.Bytes()
+	sBytes := s.Bytes()
+
+	sigBytes := append(rBytes, sBytes...)
+
+	encoded := base64.StdEncoding.EncodeToString(sigBytes)
+
+	return encoded, nil
 }
