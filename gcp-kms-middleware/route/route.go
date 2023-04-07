@@ -7,10 +7,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/yk1028/go-sample/gcp-kms-middleware/signer"
+
+	"github.com/cosmos/cosmos-sdk/crypto"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	sdk "github.com/cosmos/cosmos-sdk/crypto/types"
+
+	etherhd "github.com/evmos/ethermint/crypto/hd"
 )
 
 func SetupRouter() *gin.Engine {
@@ -25,6 +32,18 @@ func SetupRouter() *gin.Engine {
 		})
 
 		router.POST("/sign/"+key, func(ctx *gin.Context) {
+			sign(signer, ctx)
+		})
+	}
+
+	fileKeys := initFileKeys()
+
+	for key, signer := range fileKeys {
+		router.GET("/file/publickey/"+key, func(ctx *gin.Context) {
+			getPublicKey(signer, ctx)
+		})
+
+		router.POST("/file/sign/"+key, func(ctx *gin.Context) {
 			sign(signer, ctx)
 		})
 	}
@@ -67,6 +86,52 @@ func getKeyList(keyType string) map[string]interface{} {
 	}
 
 	return keyinfo[keyType].(map[string]interface{})
+}
+
+func initFileKeys() map[string]signer.Signer {
+	appName := "signing-middleware"
+	backend := "file" // backend file
+	dir := "./eth/"
+	userInput := strings.NewReader("")
+
+	newKeyring, err := keyring.New(appName, backend, dir, userInput, etherhd.EthSecp256k1Option())
+	if err != nil {
+		fmt.Println("keyring load error")
+		fmt.Print(err)
+	}
+
+	list, err := newKeyring.List()
+	if err != nil {
+		fmt.Println("keyring list error")
+		fmt.Print(err)
+	}
+
+	keys := map[string]signer.Signer{}
+
+	for _, keyInfo := range list {
+		keyName := keyInfo.GetName()
+		privKey := getFilePrivKey(newKeyring, keyName)
+		fileSigner := signer.FileSigner{PrivKey: privKey}
+		keys[keyName] = fileSigner
+	}
+
+	return keys
+}
+
+func getFilePrivKey(fileKeyRing keyring.Keyring, keyName string) sdk.PrivKey {
+	armored, err := fileKeyRing.ExportPrivKeyArmor(keyName, "password1")
+	if err != nil {
+		fmt.Print(err)
+		fmt.Println("export priv key error")
+	}
+
+	decrypted, _, err := crypto.UnarmorDecryptPrivKey(armored, "password1")
+	if err != nil {
+		fmt.Print(err)
+		fmt.Println("export priv key unarmor error")
+	}
+
+	return decrypted
 }
 
 func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
