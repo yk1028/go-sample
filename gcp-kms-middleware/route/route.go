@@ -20,6 +20,12 @@ import (
 	etherhd "github.com/evmos/ethermint/crypto/hd"
 )
 
+const (
+	appName        = "signing-middleware"
+	backend        = "file" // backend file
+	keyringFileDir = "./"
+)
+
 func SetupRouter() *gin.Engine {
 
 	router := gin.Default()
@@ -89,12 +95,9 @@ func getKeyList(keyType string) map[string]interface{} {
 }
 
 func initFileKeys() map[string]signer.Signer {
-	appName := "signing-middleware"
-	backend := "file" // backend file
-	dir := "./eth/"
 	userInput := strings.NewReader("")
 
-	newKeyring, err := keyring.New(appName, backend, dir, userInput, etherhd.EthSecp256k1Option())
+	newKeyring, err := keyring.New(appName, backend, keyringFileDir, userInput, etherhd.EthSecp256k1Option())
 	if err != nil {
 		fmt.Println("keyring load error")
 		fmt.Print(err)
@@ -119,13 +122,13 @@ func initFileKeys() map[string]signer.Signer {
 }
 
 func getFilePrivKey(fileKeyRing keyring.Keyring, keyName string) sdk.PrivKey {
-	armored, err := fileKeyRing.ExportPrivKeyArmor(keyName, "password1")
+	armored, err := fileKeyRing.ExportPrivKeyArmor(keyName, "password")
 	if err != nil {
 		fmt.Print(err)
 		fmt.Println("export priv key error")
 	}
 
-	decrypted, _, err := crypto.UnarmorDecryptPrivKey(armored, "password1")
+	decrypted, _, err := crypto.UnarmorDecryptPrivKey(armored, "password")
 	if err != nil {
 		fmt.Print(err)
 		fmt.Println("export priv key unarmor error")
