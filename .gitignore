@@ -49,4 +49,11 @@ go.work
 ### service account file
 service-account.json
 
+/test
+
+### keyring file
+*.address
+*.info
+keyhash
+
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
