@@ -91,6 +91,8 @@ func parsePublickey(key []byte) string {
 
 	compPubKey := crypto.CompressPubkey(&pubkey)
 
+	fmt.Println(compPubKey)
+
 	return base64.StdEncoding.EncodeToString(compPubKey)
 }
 
