@@ -22,8 +22,9 @@ import (
 
 const (
 	appName        = "signing-middleware"
-	backend        = "file" // backend file
+	backend        = "file"
 	keyringFileDir = "./"
+	hsmKeyInfoDir  = "./keyinfo.json"
 )
 
 func SetupRouter() *gin.Engine {
@@ -33,24 +34,30 @@ func SetupRouter() *gin.Engine {
 	keys := initKeys()
 
 	for key, signer := range keys {
-		router.GET("/publickey/"+key, func(ctx *gin.Context) {
-			getPublicKey(signer, ctx)
+		routingKey := key
+		routingSigner := signer
+
+		router.GET("/publickey/"+routingKey, func(ctx *gin.Context) {
+			getPublicKey(routingSigner, ctx)
 		})
 
-		router.POST("/sign/"+key, func(ctx *gin.Context) {
-			sign(signer, ctx)
+		router.POST("/sign/"+routingKey, func(ctx *gin.Context) {
+			sign(routingSigner, ctx)
 		})
 	}
 
 	fileKeys := initFileKeys()
 
 	for key, signer := range fileKeys {
-		router.GET("/file/publickey/"+key, func(ctx *gin.Context) {
-			getPublicKey(signer, ctx)
+		routingKey := key
+		routingSigner := signer
+
+		router.GET("/file/publickey/"+routingKey, func(ctx *gin.Context) {
+			getPublicKey(routingSigner, ctx)
 		})
 
-		router.POST("/file/sign/"+key, func(ctx *gin.Context) {
-			sign(signer, ctx)
+		router.POST("/file/sign/"+routingKey, func(ctx *gin.Context) {
+			sign(routingSigner, ctx)
 		})
 	}
 
@@ -75,7 +82,7 @@ func initKeys() map[string]signer.Signer {
 }
 
 func getKeyList(keyType string) map[string]interface{} {
-	jsonFile, err := os.Open("./keyinfo.json")
+	jsonFile, err := os.Open(hsmKeyInfoDir)
 	if err != nil {
 		fmt.Println(err)
 	}
