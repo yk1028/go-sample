@@ -74,7 +74,6 @@ func initKeys() map[string]signer.Signer {
 	keyList := getKeyList("gcpkms")
 
 	for key, name := range keyList {
-		fmt.Println(key, name)
 		keys[key] = signer.GcpKmsSigner{Name: name.(string)}
 	}
 
@@ -84,7 +83,7 @@ func initKeys() map[string]signer.Signer {
 func getKeyList(keyType string) map[string]interface{} {
 	jsonFile, err := os.Open(hsmKeyInfoDir)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 	}
 
 	defer jsonFile.Close()
@@ -95,7 +94,7 @@ func getKeyList(keyType string) map[string]interface{} {
 
 	err = json.Unmarshal(byteValue, &keyinfo)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err.Error())
 	}
 
 	return keyinfo[keyType].(map[string]interface{})
@@ -106,14 +105,12 @@ func initFileKeys() map[string]signer.Signer {
 
 	newKeyring, err := keyring.New(appName, backend, keyringFileDir, userInput, etherhd.EthSecp256k1Option())
 	if err != nil {
-		fmt.Println("keyring load error")
-		fmt.Print(err)
+		fmt.Println(err.Error())
 	}
 
 	list, err := newKeyring.List()
 	if err != nil {
-		fmt.Println("keyring list error")
-		fmt.Print(err)
+		fmt.Println(err.Error())
 	}
 
 	keys := map[string]signer.Signer{}
@@ -131,14 +128,12 @@ func initFileKeys() map[string]signer.Signer {
 func getFilePrivKey(fileKeyRing keyring.Keyring, keyName string) sdk.PrivKey {
 	armored, err := fileKeyRing.ExportPrivKeyArmor(keyName, "password")
 	if err != nil {
-		fmt.Print(err)
-		fmt.Println("export priv key error")
+		fmt.Println(err.Error())
 	}
 
 	decrypted, _, err := crypto.UnarmorDecryptPrivKey(armored, "password")
 	if err != nil {
-		fmt.Print(err)
-		fmt.Println("export priv key unarmor error")
+		fmt.Println(err.Error())
 	}
 
 	return decrypted
@@ -151,6 +146,8 @@ func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
+	fmt.Println("publickey :", publicKey)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"publicKey": publicKey,
 	})
@@ -158,26 +155,34 @@ func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
 
 func sign(keySigner signer.Signer, ctx *gin.Context) {
 
-	tx := parseTx(ctx.Request.Body)
+	tx, err := parseTx(ctx.Request.Body)
+	if err != nil {
+		ctx.String(http.StatusInternalServerError, err.Error())
+	}
 
 	signature, err := keySigner.Sign(tx)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
+	fmt.Println("signature :", signature)
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"signature": signature,
 	})
 }
 
-func parseTx(body io.ReadCloser) string {
+func parseTx(body io.ReadCloser) (string, error) {
 	value, err := ioutil.ReadAll(body)
+
+	fmt.Println("body", string(value))
+
 	if err != nil {
-		fmt.Println(err.Error())
+		return "", err
 	}
 
 	var data map[string]interface{}
 	json.Unmarshal([]byte(value), &data)
 
-	return data["tx"].(string)
+	return data["tx"].(string), nil
 }

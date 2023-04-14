@@ -3,5 +3,5 @@
 ### Todo
 - [x] publickey
 - [x] signature
-- [ ] logging
+- [x] logging
 - [ ] swagger
