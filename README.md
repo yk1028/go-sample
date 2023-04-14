@@ -1,2 +1,1 @@
-# go-sample
-- gcp-kms-middleware
+# gcp-kms-middleware
