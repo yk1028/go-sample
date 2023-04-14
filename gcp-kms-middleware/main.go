@@ -6,5 +6,5 @@ import (
 
 func main() {
 	router := route.SetupRouter()
-	router.Run(":8080")
+	router.Run(":1880")
 }
