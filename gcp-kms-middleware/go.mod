@@ -9,6 +9,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.45.9
 	github.com/ethereum/go-ethereum v1.11.5
 	github.com/evmos/ethermint v0.19.3
+	github.com/gin-contrib/logger v0.2.5
 	github.com/gin-gonic/gin v1.9.0
 	google.golang.org/api v0.114.0
 )
@@ -83,6 +84,7 @@ require (
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mimoo/StrobeGo v0.0.0-20181016162300-f8f6d4d2b643 // indirect
@@ -101,6 +103,7 @@ require (
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0 // indirect
+	github.com/rs/zerolog v1.28.0 // indirect
 	github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa // indirect
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
