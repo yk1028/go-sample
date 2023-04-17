@@ -12,6 +12,8 @@ import (
 
 type FileSigner struct {
 	PrivKey sdk.PrivKey
+
+	storedPublicKey string
 }
 
 func init() {
@@ -19,15 +21,18 @@ func init() {
 	cryptocodec.RegisterCrypto(amino)
 }
 
-func (fs FileSigner) GetPublicKey() (string, error) {
-	pubkey := fs.PrivKey.PubKey().Bytes()
+func (fs *FileSigner) GetPublicKey() (string, error) {
 
-	encoded := base64.StdEncoding.EncodeToString(pubkey)
+	if fs.storedPublicKey == "" {
+		pubkey := fs.PrivKey.PubKey().Bytes()
 
-	return encoded, nil
+		fs.storedPublicKey = base64.StdEncoding.EncodeToString(pubkey)
+	}
+
+	return fs.storedPublicKey, nil
 }
 
-func (fs FileSigner) Sign(base64ToSign string) (string, error) {
+func (fs *FileSigner) Sign(base64ToSign string) (string, error) {
 
 	body, err := base64.StdEncoding.DecodeString(base64ToSign)
 	if err != nil {

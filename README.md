@@ -4,6 +4,7 @@
 - [x] publickey
 - [x] signature
 - [x] logging
+- [x] publickey를 한번만 로드하도록 변경
 - [ ] swagger
 
 ### Key
