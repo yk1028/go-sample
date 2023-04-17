@@ -38,11 +38,11 @@ func SetupRouter() *gin.Engine {
 		routingSigner := signer
 
 		router.GET("/publickey/"+routingKey, func(ctx *gin.Context) {
-			getPublicKey(routingSigner, ctx)
+			getPublicKey(&routingSigner, ctx)
 		})
 
 		router.POST("/sign/"+routingKey, func(ctx *gin.Context) {
-			sign(routingSigner, ctx)
+			sign(&routingSigner, ctx)
 		})
 	}
 
@@ -53,11 +53,11 @@ func SetupRouter() *gin.Engine {
 		routingSigner := signer
 
 		router.GET("/file/publickey/"+routingKey, func(ctx *gin.Context) {
-			getPublicKey(routingSigner, ctx)
+			getPublicKey(&routingSigner, ctx)
 		})
 
 		router.POST("/file/sign/"+routingKey, func(ctx *gin.Context) {
-			sign(routingSigner, ctx)
+			sign(&routingSigner, ctx)
 		})
 	}
 
@@ -74,7 +74,7 @@ func initKeys() map[string]signer.Signer {
 	keyList := getKeyList("gcpkms")
 
 	for key, name := range keyList {
-		keys[key] = signer.GcpKmsSigner{Name: name.(string)}
+		keys[key] = &signer.GcpKmsSigner{Name: name.(string)}
 	}
 
 	return keys
@@ -118,8 +118,7 @@ func initFileKeys() map[string]signer.Signer {
 	for _, keyInfo := range list {
 		keyName := keyInfo.GetName()
 		privKey := getFilePrivKey(newKeyring, keyName)
-		fileSigner := signer.FileSigner{PrivKey: privKey}
-		keys[keyName] = fileSigner
+		keys[keyName] = &signer.FileSigner{PrivKey: privKey}
 	}
 
 	return keys
@@ -139,9 +138,9 @@ func getFilePrivKey(fileKeyRing keyring.Keyring, keyName string) sdk.PrivKey {
 	return decrypted
 }
 
-func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
+func getPublicKey(keySigner *signer.Signer, ctx *gin.Context) {
 
-	publicKey, err := keySigner.GetPublicKey()
+	publicKey, err := (*keySigner).GetPublicKey()
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
@@ -153,14 +152,14 @@ func getPublicKey(keySigner signer.Signer, ctx *gin.Context) {
 	})
 }
 
-func sign(keySigner signer.Signer, ctx *gin.Context) {
+func sign(keySigner *signer.Signer, ctx *gin.Context) {
 
 	tx, err := parseTx(ctx.Request.Body)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}
 
-	signature, err := keySigner.Sign(tx)
+	signature, err := (*keySigner).Sign(tx)
 	if err != nil {
 		ctx.String(http.StatusInternalServerError, err.Error())
 	}

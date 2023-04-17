@@ -19,6 +19,8 @@ import (
 
 type GcpKmsSigner struct {
 	Name string
+
+	storedPublicKey string
 }
 
 type publicKeyInfo struct {
@@ -27,7 +29,20 @@ type publicKeyInfo struct {
 	PublicKey asn1.BitString
 }
 
-func (g GcpKmsSigner) GetPublicKey() (string, error) {
+func (gs *GcpKmsSigner) GetPublicKey() (string, error) {
+
+	if gs.storedPublicKey == "" {
+		var err error
+		gs.storedPublicKey, err = gs.getPublicKeyFromGcpKms()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return gs.storedPublicKey, nil
+}
+
+func (gs *GcpKmsSigner) getPublicKeyFromGcpKms() (string, error) {
 	// Create the client using gcp service account key file.
 	ctx := context.Background()
 	client, err := kms.NewKeyManagementClient(ctx, option.WithCredentialsFile("./service-account.json"))
@@ -38,7 +53,7 @@ func (g GcpKmsSigner) GetPublicKey() (string, error) {
 
 	// Build the request.
 	req := &kmspb.GetPublicKeyRequest{
-		Name: g.Name,
+		Name: gs.Name,
 	}
 
 	// Call the API.
@@ -98,7 +113,7 @@ type ecdsaStruct struct {
 	R, S *big.Int
 }
 
-func (g GcpKmsSigner) Sign(base64ToSign string) (string, error) {
+func (g *GcpKmsSigner) Sign(base64ToSign string) (string, error) {
 
 	ctx := context.Background()
 	kmsClient, err := kms.NewKeyManagementClient(ctx, option.WithCredentialsFile("./service-account.json"))
