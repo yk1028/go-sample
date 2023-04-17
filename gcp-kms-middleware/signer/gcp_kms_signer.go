@@ -113,7 +113,7 @@ type ecdsaStruct struct {
 	R, S *big.Int
 }
 
-func (g *GcpKmsSigner) Sign(base64ToSign string) (string, error) {
+func (gs *GcpKmsSigner) Sign(base64ToSign string) (string, error) {
 
 	ctx := context.Background()
 	kmsClient, err := kms.NewKeyManagementClient(ctx, option.WithCredentialsFile("./service-account.json"))
@@ -132,7 +132,7 @@ func (g *GcpKmsSigner) Sign(base64ToSign string) (string, error) {
 	digest := crypto.Keccak256(bytesToSign)
 
 	req := &kmspb.AsymmetricSignRequest{
-		Name: g.Name,
+		Name: gs.Name,
 		Digest: &kmspb.Digest{
 			Digest: &kmspb.Digest_Sha256{
 				Sha256: digest[:],
