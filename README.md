@@ -21,5 +21,5 @@
 ```
 - Cosmos Sdk keyring file
   - `./keyring-file` 디렉토리 안에 keyring과 key정보를 가진 파일(keyhash, .address, .info)을 추가하면 cosmos sdk의 keyring file 방식으로 key 추가 가능
-  - 최초 실행시 keyring passphrase 입력 필요
+  - 최초 실행시 keyring passphrase 입력 필요 (파일에서 읽어오는 방식으로 변경)
 
